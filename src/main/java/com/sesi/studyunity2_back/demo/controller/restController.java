@@ -3,12 +3,16 @@ package com.sesi.studyunity2_back.demo.controller;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.PublishRequest;
+import com.amazonaws.services.sns.model.SubscribeRequest;
 import com.sesi.studyunity2_back.demo.service.kakaoService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
+import org.springframework.cloud.aws.messaging.listener.annotation.SqsListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.messaging.support.MessageBuilder;
@@ -27,6 +31,8 @@ public class restController {
     private RedisTemplate<String,String>redisTemplate;
     @Autowired
     private QueueMessagingTemplate queueMessagingTemplate;
+    @Autowired
+    private AmazonSNSClient amazonSNSClient;
 
     @RequestMapping(value = "/api/kakao/**",method = RequestMethod.GET)
     public String callApi(HttpServletRequest request,HttpServletResponse response) {
@@ -53,5 +59,20 @@ public class restController {
         String message=request.getParameter("message");
         queueMessagingTemplate.send(url,MessageBuilder.withPayload(message).build());
         
+    }
+    @SqsListener("testsqs")
+    public void loadMessage(String message) {
+        logger.info("message: "+message);
+    
+        PublishRequest PublishRequest=new  PublishRequest("arn:aws:sns:ap-northeast-2:527222691614:test", message,"test제목");
+        amazonSNSClient.publish(PublishRequest);
+    }
+    @RequestMapping(value = "/sns",method = RequestMethod.GET)
+    public void awsSns(HttpServletRequest request) {
+        logger.info("awsSns");
+        //단체이메일 보내는법
+        PublishRequest PublishRequest=new  PublishRequest("arn:aws:sns:ap-northeast-2:527222691614:test", "test본문내용","test제목");
+        amazonSNSClient.publish(PublishRequest);
+
     }
 }
